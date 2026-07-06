@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>会子管理后台</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">会</div>
+        <div>
+          <h1>会子管理后台</h1>
+          <p>会局、会员、收缴、得会与风险台账</p>
+        </div>
+      </div>
+      <nav class="nav" aria-label="后台导航">
+        <button class="nav-item active" data-view="dashboard">仪表盘</button>
+        <button class="nav-item" data-view="hui">会局管理</button>
+        <button class="nav-item" data-view="members">会员管理</button>
+        <button class="nav-item" data-view="payments">收缴登记</button>
+        <button class="nav-item" data-view="payouts">得会记录</button>
+        <button class="nav-item" data-view="risk">风险预警</button>
+        <button class="nav-item" data-view="reports">报表备份</button>
+      </nav>
+      <div class="sidebar-note">
+        <strong>合规提醒</strong>
+        <span>只面向固定成员做账和透明管理，不面向不特定对象募集资金。</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local ledger</p>
+          <h2 id="viewTitle">仪表盘</h2>
+        </div>
+        <div class="topbar-actions">
+          <select id="activeHuiSelect" aria-label="选择当前会局"></select>
+          <button id="seedBtn" class="button secondary">载入样例</button>
+          <button id="exportBtn" class="button primary">导出备份</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active">
+        <div class="stats-grid">
+          <div class="stat-panel">
+            <span>会局数</span>
+            <strong id="statHui">0</strong>
+          </div>
+          <div class="stat-panel">
+            <span>会员数</span>
+            <strong id="statMembers">0</strong>
+          </div>
+          <div class="stat-panel">
+            <span>当期应收</span>
+            <strong id="statDue">0</strong>
+          </div>
+          <div class="stat-panel">
+            <span>当期缺口</span>
+            <strong id="statGap">0</strong>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>当前会局概览</h3>
+              <span id="activeHuiBadge" class="badge muted">未选择</span>
+            </div>
+            <div id="huiSummary" class="summary-list"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h3>待处理事项</h3>
+              <span class="badge warn">自动识别</span>
+            </div>
+            <div id="todoList" class="todo-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="hui" class="view">
+        <div class="content-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>新建会局</h3>
+            </div>
+            <form id="huiForm" class="form-grid">
+              <label>会局名称<input name="name" required placeholder="例如：2026春季互助会"></label>
+              <label>会局类型
+                <select name="type">
+                  <option value="fixed">固定轮会</option>
+                  <option value="bid">标会</option>
+                  <option value="draw">摇会</option>
+                </select>
+              </label>
+              <label>开始日期<input name="startDate" type="date" required></label>
+              <label>总期数<input name="periods" type="number" min="1" step="1" required value="10"></label>
+              <label>每期缴款<input name="contribution" type="number" min="0" step="0.01" required value="1000"></label>
+              <label>会首手续费<input name="fee" type="number" min="0" step="0.01" value="0"></label>
+              <label>当前状态
+                <select name="status">
+                  <option value="active">进行中</option>
+                  <option value="draft">筹备中</option>
+                  <option value="closed">已结束</option>
+                </select>
+              </label>
+              <label class="span-2">规则备注<textarea name="notes" rows="3" placeholder="写清楚缴款日、得会规则、逾期处理和担保约定"></textarea></label>
+              <div class="span-2">
+                <div class="field-title">参与会员</div>
+                <div id="huiMemberPicker" class="check-grid"></div>
+              </div>
+              <button class="button primary span-2" type="submit">保存会局</button>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>会局列表</h3>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>名称</th>
+                    <th>类型</th>
+                    <th>成员</th>
+                    <th>每期</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="huiTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="members" class="view">
+        <div class="content-grid">
+          <section class="panel">
+            <div class="panel-head"><h3>新增会员</h3></div>
+            <form id="memberForm" class="form-grid">
+              <label>姓名<input name="name" required placeholder="会员姓名"></label>
+              <label>电话<input name="phone" placeholder="联系方式"></label>
+              <label>住址或村社<input name="address" placeholder="用于识别固定成员关系"></label>
+              <label>信用标签
+                <select name="riskLevel">
+                  <option value="normal">正常</option>
+                  <option value="watch">关注</option>
+                  <option value="high">高风险</option>
+                </select>
+              </label>
+              <label class="span-2">备注<textarea name="notes" rows="3" placeholder="保人、关系来源、历史履约情况"></textarea></label>
+              <button class="button primary span-2" type="submit">保存会员</button>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>会员台账</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>姓名</th>
+                    <th>电话</th>
+                    <th>地址</th>
+                    <th>标签</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="memberTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="payments" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>收缴登记</h3>
+            <div class="inline-controls">
+              <label>期数<input id="paymentPeriod" type="number" min="1" value="1"></label>
+              <button id="markAllPaidBtn" class="button secondary">本期全部实收</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>会员</th>
+                  <th>应缴</th>
+                  <th>实缴</th>
+                  <th>缴款日期</th>
+                  <th>方式</th>
+                  <th>状态</th>
+                  <th>备注</th>
+                </tr>
+              </thead>
+              <tbody id="paymentTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="payouts" class="view">
+        <div class="content-grid">
+          <section class="panel">
+            <div class="panel-head"><h3>登记得会</h3></div>
+            <form id="payoutForm" class="form-grid">
+              <label>期数<input name="period" type="number" min="1" value="1" required></label>
+              <label>得会会员<select name="memberId" required></select></label>
+              <label>出价或贴现<input name="bid" type="number" min="0" step="0.01" value="0"></label>
+              <label>实发金额<input name="amount" type="number" min="0" step="0.01" required></label>
+              <label>日期<input name="date" type="date" required></label>
+              <label class="span-2">备注<textarea name="notes" rows="3" placeholder="说明得会方式、是否扣手续费、是否有争议"></textarea></label>
+              <button class="button primary span-2" type="submit">保存得会记录</button>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>得会台账</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>期数</th>
+                    <th>会员</th>
+                    <th>实发</th>
+                    <th>出价/贴现</th>
+                    <th>日期</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="payoutTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="risk" class="view">
+        <div class="content-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>风险预警</h3>
+              <span class="badge danger">人工复核</span>
+            </div>
+            <div id="riskList" class="risk-list"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>合规检查清单</h3></div>
+            <ul class="checklist">
+              <li>成员是否固定、可识别，避免向不特定对象扩散。</li>
+              <li>规则是否书面化，包括每期缴款、得会方式、逾期责任。</li>
+              <li>是否避免承诺固定高额回报。</li>
+              <li>会款是否独立记账，避免挪作其他会局或个人消费。</li>
+              <li>是否定期向会员公示收缴、得会和余额。</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+
+      <section id="reports" class="view">
+        <div class="content-grid">
+          <section class="panel">
+            <div class="panel-head"><h3>备份与恢复</h3></div>
+            <div class="action-grid">
+              <button id="downloadJsonBtn" class="button primary">下载 JSON 备份</button>
+              <label class="file-button">导入 JSON<input id="importJsonInput" type="file" accept="application/json"></label>
+              <button id="printBtn" class="button secondary">打印当前报表</button>
+              <button id="clearBtn" class="button danger">清空本地数据</button>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>当前会局报表</h3></div>
+            <pre id="reportText" class="report-box"></pre>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
